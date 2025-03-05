@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Clientes - Rios Del Desierto SaS</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body { padding-top: 70px; }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <a class="navbar-brand" href="/">Rios Del Desierto SaS</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarContent" 
+            aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  
+    <div class="collapse navbar-collapse" id="navbarContent">
+      <ul class="navbar-nav mr-auto">
+        <!-- Dropdown Reportes -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="reportesDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Reportes
+          </a>
+          <div class="dropdown-menu" aria-labelledby="reportesDropdown">
+            <a class="dropdown-item" href="api/reportes/reporte_compras" target="_blank">Reporte de Compras</a>
+            <a class="dropdown-item" href="api/reportes/reporte_fidelizacion" target="_blank">Reporte de Fidelización</a>
+          </div>
+        </li>
+        <!-- Clientes -->
+        <li class="nav-item active">
+          <a class="nav-link" href="/clientes">Clientes</a>
+        </li>
+        <!-- Productos -->
+        <li class="nav-item">
+          <a class="nav-link" href="/productos">Productos</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  
+  <div class="container">
+    <!-- Sección: Listado de Compras -->
+    <h2 class="mt-4">Listado de Compras</h2>
+    <p>Haz click en el botón para cargar el listado de compras.</p>
+    <button id="loadCompras" class="btn btn-primary mb-3">Cargar Compras</button>
+    
+    <!-- Div para mostrar mensajes o resultados -->
+    <div id="comprasResult"></div>
+    
+    <!-- Tabla para mostrar el listado de compras -->
+    <table class="table table-bordered" id="comprasTable" style="display: none;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Cliente ID</th>
+          <th>Fecha</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Se completará dinámicamente -->
+      </tbody>
+    </table>
+    
+    <hr>
+    
+    <!-- Sección: Búsqueda de Detalle de Compra -->
+    <h2 class="mt-5">Buscar Detalle de Compra</h2>
+    <form id="detalleForm">
+      <div class="form-group">
+        <label for="compra_id">ID de Compra:</label>
+        <input type="number" id="compra_id" class="form-control" placeholder="Ingrese el ID de la compra" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Buscar Detalle</button>
+    </form>
+    
+    <!-- Div para mensajes o resultados de la búsqueda de detalle -->
+    <div id="detalleResult" class="mt-4"></div>
+    
+    <!-- Tabla para mostrar el detalle de la compra -->
+    <table class="table table-bordered" id="detalleTable" style="display: none;">
+      <thead>
+        <tr>
+          <th>Item ID</th>
+          <th>Producto ID</th>
+          <th>Producto Nombre</th>
+          <th>Cantidad</th>
+          <th>Precio Unitario</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Se completará dinámicamente -->
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- jQuery y Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- JavaScript para consumir la API y renderizar resultados -->
+  <script>
+    // Función para renderizar la tabla de compras
+    function renderComprasTable(compras) {
+      const table = document.getElementById('comprasTable');
+      const tbody = table.querySelector('tbody');
+      tbody.innerHTML = ''; // Limpiar contenido previo
+      
+      compras.forEach(compra => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${compra.id}</td>
+          <td>${compra.cliente_id}</td>
+          <td>${compra.fecha}</td>
+          <td>${compra.total}</td>
+        `;
+        tbody.appendChild(row);
+      });
+      table.style.display = 'table';
+    }
+    
+    // Cargar todas las compras al hacer clic en el botón
+    document.getElementById('loadCompras').addEventListener('click', async function() {
+      const comprasResult = document.getElementById('comprasResult');
+      comprasResult.innerHTML = '<div class="alert alert-info">Cargando compras...</div>';
+      
+      try {
+        const response = await fetch('api/compras/todas');
+        if (!response.ok) {
+          comprasResult.innerHTML = '<div class="alert alert-danger">Error al cargar las compras.</div>';
+          return;
+        }
+        const compras = await response.json();
+        if (compras.length === 0) {
+          comprasResult.innerHTML = '<div class="alert alert-warning">No se encontraron compras.</div>';
+          document.getElementById('comprasTable').style.display = 'none';
+          return;
+        }
+        renderComprasTable(compras);
+        comprasResult.innerHTML = '';
+      } catch (error) {
+        console.error('Error:', error);
+        comprasResult.innerHTML = '<div class="alert alert-danger">Error al cargar las compras.</div>';
+      }
+    });
+    
+    // Buscar detalle de una compra
+    document.getElementById('detalleForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const compraId = document.getElementById('compra_id').value;
+      const detalleResult = document.getElementById('detalleResult');
+      detalleResult.innerHTML = '<div class="alert alert-info">Buscando detalle de compra...</div>';
+      
+      try {
+        const response = await fetch(`api/compras/detalle/${compraId}`);
+        const data = await response.json();
+        if (!response.ok) {
+          detalleResult.innerHTML = `<div class="alert alert-danger">${data.error || data.message}</div>`;
+          document.getElementById('detalleTable').style.display = 'none';
+          return;
+        }
+        // Data contiene compra_id, fecha y un arreglo "detalle" con los ítems
+        const detalleTable = document.getElementById('detalleTable');
+        const tbody = detalleTable.querySelector('tbody');
+        tbody.innerHTML = '';
+        data.detalle.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.item_id}</td>
+            <td>${item.producto_id}</td>
+            <td>${item.producto_nombre}</td>
+            <td>${item.cantidad}</td>
+            <td>${item.precio_unitario}</td>
+            <td>${item.total}</td>
+          `;
+          tbody.appendChild(row);
+        });
+        detalleTable.style.display = 'table';
+        detalleResult.innerHTML = `<div class="alert alert-success">Detalle de compra (ID: ${data.compra_id}) cargado.</div>`;
+      } catch (error) {
+        console.error('Error:', error);
+        detalleResult.innerHTML = '<div class="alert alert-danger">Error al buscar el detalle de la compra.</div>';
+      }
+    });
+  </script>
+</body>
+</html>
